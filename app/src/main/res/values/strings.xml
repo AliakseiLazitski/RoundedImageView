@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">RoundedImageView</string>
+    <string name="corners_radius">Corners radius</string>
+    <string name="top_left_radius">Top left radius</string>
+    <string name="top_right_radius">Top right radius</string>
+    <string name="bottom_right_radius">Bottom right radius</string>
+    <string name="bottom_left_radius">Bottom left radius</string>
+    <string name="to_circle">to circle</string>
+</resources>
