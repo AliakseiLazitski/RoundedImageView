@@ -6,7 +6,6 @@ android {
     defaultConfig {
         applicationId "jork.juger.roundedimageview"
         minSdkVersion 15
-        //noinspection OldTargetApi
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
