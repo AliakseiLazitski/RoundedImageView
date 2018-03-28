@@ -3,9 +3,19 @@ package jork.juger.roundedimageview;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Xfermode;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.widget.ImageView;
@@ -29,18 +39,22 @@ public class RoundedImageView extends ImageView {
     private float mRightScalePadding;
 
     private Path mClipPath;
+    private Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     public RoundedImageView(Context context) {
         super(context);
+        init();
     }
 
     public RoundedImageView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+        init();
         extractAttributes(attrs);
     }
 
     public RoundedImageView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        init();
         extractAttributes(attrs);
     }
 
@@ -123,14 +137,44 @@ public class RoundedImageView extends ImageView {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        if (w != oldw || h != oldh)
+            initClipPath();
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        if (mIsCircle && ((MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED && MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED)
+                || (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED && MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED))) {
+            if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED) {
+                int measuredSpec = MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY);
+                super.onMeasure(widthMeasureSpec, measuredSpec);
+            } else if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED) {
+                int measuredSpec = MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY);
+                super.onMeasure(widthMeasureSpec, measuredSpec);
+            }
+        } else {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        }
+    }
+
+    private void init() {
+        setLayerType(LAYER_TYPE_SOFTWARE, null);
+        Xfermode xfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_IN);
+        mPaint.setStyle(Paint.Style.FILL);
+        mPaint.setColor(Color.TRANSPARENT);
+        mPaint.setXfermode(xfermode);
         initClipPath();
     }
 
-    private void initClipPath() {
-        if(mClipPath == null)
+    private void initPath() {
+        if (mClipPath == null) {
             mClipPath = new Path();
-        else
-            mClipPath.reset();
+            mClipPath.setFillType(Path.FillType.INVERSE_EVEN_ODD);
+        } else mClipPath.reset();
+    }
+
+    private void initClipPath() {
+        initPath();
         float w = getMeasuredWidth();
         float h = getMeasuredHeight();
         if (w == 0 || h == 0 || getDrawable() == null)
@@ -154,6 +198,37 @@ public class RoundedImageView extends ImageView {
         }
         postInvalidate();
     }
+
+    /*private Bitmap getBitmap() {
+        Bitmap result = null;
+        if (getDrawable() != null) {
+            if (getDrawable() instanceof BitmapDrawable)
+                result = ((BitmapDrawable) getDrawable()).getBitmap();
+            else {
+                Bitmap.Config bitmapConfig = Bitmap.Config.ARGB_8888;
+                if (getDrawable() instanceof ColorDrawable) {
+                    int sizes = 1;
+                    result = Bitmap.createBitmap(sizes, sizes, bitmapConfig);
+                } else {
+                    result = Bitmap.createBitmap(getDrawable().getIntrinsicWidth(), getDrawable().getIntrinsicHeight(), bitmapConfig);
+                }
+            }
+        }
+        if (result != null) {
+            Rect outRect = new Rect();
+            getDrawingRect(outRect);
+//            getImageMatrix();
+//            result = Bitmap.createBitmap(result, outRect.left, outRect.top, outRect.width(), outRect.height());
+            result = result.copy(result.getConfig(), true);
+
+            Canvas canvas = new Canvas(result);
+            canvas.drawPath(mClipPath, mPaint);
+//            setImageDrawable(new BitmapDrawable(result));
+//            setImageDrawable(new BitmapDrawable(getResources(), result));
+//            setImageBitmap(result);
+        }
+        return result;
+    }*/
 
     private void calculateScalePaddings() {
         mRightScalePadding = mLeftScalePadding = mTopScalePadding = mBottomScalePadding = 0.f;
@@ -235,9 +310,7 @@ public class RoundedImageView extends ImageView {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        canvas.save();
-        canvas.clipPath(mClipPath);
         super.onDraw(canvas);
-        canvas.restore();
+        canvas.drawPath(mClipPath, mPaint);
     }
 }
